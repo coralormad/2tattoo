@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Anton, IBM_Plex_Mono } from "next/font/google";
+import { CursorTinta } from "@/components/efectos/CursorTinta";
 import "./globals.css";
 
 const anton = Anton({
@@ -29,7 +30,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       lang="es"
       className={`${anton.variable} ${plexMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        <CursorTinta />
+        {children}
+      </body>
     </html>
   );
 }

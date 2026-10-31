@@ -30,6 +30,10 @@
     background: var(--color-lima);
     color: var(--color-tinta);
   }
+  :focus-visible {
+    outline: 2px solid var(--color-lima);
+    outline-offset: 3px;
+  }
 }
 
 /* Retícula visible de fondo (hoja técnica) */
