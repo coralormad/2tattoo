@@ -19,7 +19,7 @@ export async function obtenerDatosHome() {
   const [flashesRes, ideasRes, artistasRes] = await Promise.all([
     supabase
       .from("flashes")
-      .select("titulo, tipo, icono, medida_cm, ciudad, perfiles(usuario, nombre)")
+      .select("id, titulo, tipo, icono, medida_cm, ciudad, perfiles(usuario, nombre)")
       .eq("estado", "disponible")
       .order("creado_en", { ascending: false })
       .limit(4),
@@ -38,6 +38,7 @@ export async function obtenerDatosHome() {
   ]);
 
   const flashes: Flash[] = (flashesRes.data ?? []).map((f, i) => ({
+    id: f.id,
     numero: `Nº ${String(i + 1).padStart(3, "0")}`,
     tipo: f.tipo === "flash_unico" ? "FLASH ÚNICO" : "FLASH",
     titulo: f.titulo,
