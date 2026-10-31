@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { Header } from "@/components/marca/Header";
 import { IconoFlash } from "@/components/marca/IconoFlash";
 import { SolicitudFlash } from "@/components/flash/SolicitudFlash";
+import { obtenerHuecosDisponibles } from "@/lib/disponibilidad";
 
 export default async function FichaFlash({
   params,
@@ -16,13 +17,17 @@ export default async function FichaFlash({
   const [{ data: flash }, { data: sesion }] = await Promise.all([
     supabase
       .from("flashes")
-      .select("id, titulo, tipo, icono, medida_cm, precio_desde, ciudad, estado, perfiles(usuario, nombre)")
+      .select(
+        "id, titulo, tipo, icono, medida_cm, precio_desde, ciudad, estado, tatuador_id, perfiles(usuario, nombre)",
+      )
       .eq("id", id)
       .single(),
     supabase.auth.getUser(),
   ]);
 
   if (!flash) notFound();
+
+  const huecos = await obtenerHuecosDisponibles(supabase, flash.tatuador_id);
 
   const perfilArtista = Array.isArray(flash.perfiles) ? flash.perfiles[0] : flash.perfiles;
   const nombreArtista = perfilArtista?.usuario
@@ -84,6 +89,7 @@ export default async function FichaFlash({
               titulo={flash.titulo}
               esUnico={esUnico}
               haySesion={!!sesion.user}
+              huecos={huecos}
             />
           ) : (
             <p className="border-t-2 border-carbon pt-6 text-sm text-[#444]">

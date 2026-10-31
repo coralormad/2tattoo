@@ -7,9 +7,25 @@ import { TarjetaFlash } from "@/components/marca/TarjetaFlash";
 import { TarjetaIdea } from "@/components/marca/TarjetaIdea";
 import { TarjetaArtista } from "@/components/marca/TarjetaArtista";
 import { obtenerDatosHome } from "@/lib/datos-home";
+import { createClient } from "@/lib/supabase/server";
 
 export default async function Home() {
   const { flashes, ideas, artistas } = await obtenerDatosHome();
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  let hrefHoja = "/registro";
+  if (user) {
+    const { data: perfil } = await supabase
+      .from("perfiles")
+      .select("rol")
+      .eq("id", user.id)
+      .single();
+    hrefHoja = perfil?.rol === "tatuador" ? "/panel/agenda" : "/registro";
+  }
 
   return (
     <>
@@ -45,7 +61,7 @@ export default async function Home() {
               EXPLORAR FLASH →
             </Link>
             <Link
-              href="/registro"
+              href="{hrefHoja}"
               className="border border-papel px-6 py-4 text-sm font-semibold tracking-widest text-papel no-underline"
             >
               TATÚO · ABRIR MI HOJA
@@ -155,7 +171,7 @@ export default async function Home() {
               <span className="text-lima">Abre tu hoja.</span>
             </span>
             <Link
-              href="/registro"
+              href="{hrefHoja}"
               className="bg-lima px-6 py-4 text-sm font-semibold tracking-widest text-tinta no-underline"
             >
               CREAR PERFIL DE ARTISTA →

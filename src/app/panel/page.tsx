@@ -40,21 +40,29 @@ export default async function Panel() {
           postule. Aparecerán en el Home en cuanto se guarden.
         </p>
 
-        {perfil.usuario ? (
+        <div className="mt-4 flex flex-wrap gap-6">
+          {perfil.usuario ? (
+            <Link
+              href={`/artista/${perfil.usuario}`}
+              className="text-xs font-semibold tracking-widest text-lima no-underline"
+            >
+              VER MI PERFIL PÚBLICO →
+            </Link>
+          ) : (
+            <Link
+              href="/panel/perfil"
+              className="text-xs font-semibold tracking-widest text-lima no-underline"
+            >
+              COMPLETA TU PERFIL PÚBLICO →
+            </Link>
+          )}
           <Link
-            href={`/artista/${perfil.usuario}`}
-            className="mt-4 inline-block w-fit text-xs font-semibold tracking-widest text-lima no-underline"
+            href="/panel/agenda"
+            className="text-xs font-semibold tracking-widest text-lima no-underline"
           >
-            VER MI PERFIL PÚBLICO →
+            CONFIGURAR AGENDA →
           </Link>
-        ) : (
-          <Link
-            href="/panel/perfil"
-            className="mt-4 inline-block w-fit text-xs font-semibold tracking-widest text-lima no-underline"
-          >
-            COMPLETA TU PERFIL PÚBLICO →
-          </Link>
-        )}
+        </div>
 
         <div className="mt-10 grid gap-8 md:grid-cols-2">
           <FormularioFlash />
