@@ -16,13 +16,15 @@ export async function Header() {
   } = await supabase.auth.getUser();
 
   let nombre: string | null = null;
+  let esTatuador = false;
   if (user) {
     const { data: perfil } = await supabase
       .from("perfiles")
-      .select("nombre")
+      .select("nombre, rol")
       .eq("id", user.id)
       .single();
     nombre = perfil?.nombre ?? null;
+    esTatuador = perfil?.rol === "tatuador";
   }
 
   return (
@@ -39,6 +41,11 @@ export async function Header() {
             {e.texto}
           </Link>
         ))}
+        {esTatuador && (
+          <Link href="/panel" className="text-papel no-underline hover:text-lima">
+            PANEL
+          </Link>
+        )}
         {user ? (
           <form action={cerrarSesion} className="flex items-center gap-4">
             {nombre && <span className="hidden text-gris sm:inline">{nombre}</span>}
