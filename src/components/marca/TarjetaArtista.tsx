@@ -2,13 +2,14 @@ import Link from "next/link";
 
 export type Artista = {
   nombre: string;
+  usuario: string;
   ciudad: string;
   estilos: string;
 };
 
 export function TarjetaArtista({ artista }: { artista: Artista }) {
   return (
-    <Link href="/artistas" className="flex flex-col gap-3 text-papel no-underline">
+    <Link href={`/artista/${artista.usuario}`} className="flex flex-col gap-3 text-papel no-underline">
       <div
         role="img"
         aria-label="Retrato del artista"

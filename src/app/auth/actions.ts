@@ -7,6 +7,8 @@ import { createClient } from "@/lib/supabase/server";
 
 export type EstadoFormulario = { error: string } | null;
 
+const USUARIO_VALIDO = /^[a-z0-9_.-]{3,30}$/;
+
 export async function iniciarSesion(
   _previo: EstadoFormulario,
   formData: FormData,
@@ -35,18 +37,37 @@ export async function registrarse(
   const password = String(formData.get("password") ?? "");
   const nombre = String(formData.get("nombre") ?? "").trim();
   const rol = formData.get("rol") === "tatuador" ? "tatuador" : "cliente";
+  const usuario = String(formData.get("usuario") ?? "").trim().toLowerCase();
 
   if (password.length < 8) {
     return { error: "La contraseña debe tener al menos 8 caracteres." };
   }
 
-  const origin = (await headers()).get("origin");
   const supabase = await createClient();
+
+  if (rol === "tatuador") {
+    if (!USUARIO_VALIDO.test(usuario)) {
+      return {
+        error:
+          "El usuario debe tener 3-30 caracteres: minúsculas, números, puntos, guiones o guiones bajos.",
+      };
+    }
+
+    const { data: ocupado } = await supabase
+      .from("perfiles")
+      .select("id")
+      .eq("usuario", usuario)
+      .maybeSingle();
+
+    if (ocupado) return { error: "Ese usuario ya está en uso." };
+  }
+
+  const origin = (await headers()).get("origin");
   const { error } = await supabase.auth.signUp({
     email,
     password,
     options: {
-      data: { rol, nombre: nombre || null },
+      data: { rol, nombre: nombre || null, usuario: rol === "tatuador" ? usuario : null },
       emailRedirectTo: `${origin}/auth/confirm`,
     },
   });

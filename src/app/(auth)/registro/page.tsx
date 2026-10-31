@@ -12,6 +12,7 @@ export default function Registro() {
     null,
   );
   const [rol, setRol] = useState<"cliente" | "tatuador">("cliente");
+  const esTatuador = rol === "tatuador";
 
   return (
     <AccesoLayout numero="001" lugar="alta" volverA="/login" lineas={["Crear", "cuen", "ta."]}>
@@ -57,11 +58,31 @@ export default function Registro() {
           name="nombre"
           type="text"
           autoComplete="name"
-          placeholder={rol === "tatuador" ? "Tu nombre de artista" : "Tu nombre"}
+          placeholder={esTatuador ? "Tu nombre de artista" : "Tu nombre"}
           required
         />
+
+        {esTatuador && (
+          <div className="flex flex-col gap-2">
+            <CampoFicha
+              numero="02"
+              etiqueta="Usuario"
+              id="registro-usuario"
+              name="usuario"
+              type="text"
+              placeholder="lucia.lineas"
+              pattern="[a-z0-9_.-]{3,30}"
+              required
+            />
+            <span className="-mt-1 text-[11px] text-gris">
+              Será tu perfil público: 2tattoo.com/artista/tu-usuario. Solo minúsculas, números,
+              puntos y guiones.
+            </span>
+          </div>
+        )}
+
         <CampoFicha
-          numero="02"
+          numero={esTatuador ? "03" : "02"}
           etiqueta="Email"
           id="registro-email"
           name="email"
@@ -71,7 +92,7 @@ export default function Registro() {
           required
         />
         <CampoFicha
-          numero="03"
+          numero={esTatuador ? "04" : "03"}
           etiqueta="Contraseña"
           id="registro-pass"
           name="password"

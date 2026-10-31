@@ -31,8 +31,9 @@ export async function obtenerDatosHome() {
       .limit(3),
     supabase
       .from("perfiles")
-      .select("nombre, ciudad, estilos")
+      .select("nombre, usuario, ciudad, estilos")
       .eq("rol", "tatuador")
+      .not("usuario", "is", null)
       .order("creado_en", { ascending: false })
       .limit(3),
   ]);
@@ -56,9 +57,10 @@ export async function obtenerDatosHome() {
   }));
 
   const artistas: Artista[] = (artistasRes.data ?? [])
-    .filter((a) => a.nombre)
+    .filter((a) => a.nombre && a.usuario)
     .map((a) => ({
       nombre: a.nombre!,
+      usuario: a.usuario!,
       ciudad: a.ciudad ?? "",
       estilos: a.estilos ?? "",
     }));

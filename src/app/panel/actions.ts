@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 export type EstadoFormulario = { error: string } | null;
 
 const ICONOS_VALIDOS = ["snake", "dagger", "moon", "star"] as const;
+const USUARIO_VALIDO = /^[a-z0-9_.-]{3,30}$/;
 
 /** Comprueba sesión + rol de tatuador; redirige si no se cumple. */
 async function requerirTatuador() {
@@ -80,6 +81,43 @@ export async function publicarIdea(
   });
 
   if (error) return { error: "No se pudo publicar la idea. Inténtalo de nuevo." };
+
+  redirect("/panel");
+}
+
+export async function actualizarPerfil(
+  _previo: EstadoFormulario,
+  formData: FormData,
+): Promise<EstadoFormulario> {
+  const { supabase, tatuadorId } = await requerirTatuador();
+
+  const usuario = String(formData.get("usuario") ?? "").trim().toLowerCase();
+  const bio = String(formData.get("bio") ?? "").trim();
+  const ciudad = String(formData.get("ciudad") ?? "").trim();
+  const estilos = String(formData.get("estilos") ?? "").trim();
+
+  if (!USUARIO_VALIDO.test(usuario)) {
+    return {
+      error:
+        "El usuario debe tener 3-30 caracteres: minúsculas, números, puntos, guiones o guiones bajos.",
+    };
+  }
+
+  const { data: ocupado } = await supabase
+    .from("perfiles")
+    .select("id")
+    .eq("usuario", usuario)
+    .neq("id", tatuadorId)
+    .maybeSingle();
+
+  if (ocupado) return { error: "Ese usuario ya está en uso." };
+
+  const { error } = await supabase
+    .from("perfiles")
+    .update({ usuario, bio: bio || null, ciudad: ciudad || null, estilos: estilos || null })
+    .eq("id", tatuadorId);
+
+  if (error) return { error: "No se pudo guardar el perfil. Inténtalo de nuevo." };
 
   redirect("/panel");
 }

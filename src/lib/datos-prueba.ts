@@ -24,7 +24,7 @@ export const ideasDeMuestra: Idea[] = [
 ];
 
 export const artistasDeMuestra: Artista[] = [
-  { nombre: "Lucía M.", ciudad: "Sevilla", estilos: "Línea fina · Botánico" },
-  { nombre: "Mar R.", ciudad: "Valencia", estilos: "Blackwork · Ornamental" },
-  { nombre: "Iker T.", ciudad: "Bilbao", estilos: "Tradicional · Flash" },
+  { nombre: "Lucía M.", usuario: "lucia.lineas", ciudad: "Sevilla", estilos: "Línea fina · Botánico" },
+  { nombre: "Mar R.", usuario: "mar.blackwork", ciudad: "Valencia", estilos: "Blackwork · Ornamental" },
+  { nombre: "Iker T.", usuario: "tinta.norte", ciudad: "Bilbao", estilos: "Tradicional · Flash" },
 ];
