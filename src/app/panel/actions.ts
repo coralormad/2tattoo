@@ -85,6 +85,25 @@ export async function publicarIdea(
   redirect("/panel");
 }
 
+export async function responderSolicitud(formData: FormData) {
+  const { supabase } = await requerirTatuador();
+
+  const id = String(formData.get("id") ?? "");
+  const estado = String(formData.get("estado") ?? "");
+  if (!id || (estado !== "aceptada" && estado !== "rechazada")) {
+    redirect("/panel?solicitud=error");
+  }
+
+  // La función SQL comprueba que el flash es de este tatuador y que la
+  // solicitud sigue pendiente, y libera el flash único si se rechaza.
+  const { error } = await supabase.rpc("responder_solicitud", {
+    p_solicitud: id,
+    p_estado: estado,
+  });
+
+  redirect(error ? "/panel?solicitud=error" : `/panel?solicitud=${estado}`);
+}
+
 export async function actualizarPerfil(
   _previo: EstadoFormulario,
   formData: FormData,

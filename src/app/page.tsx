@@ -61,7 +61,7 @@ export default async function Home() {
               EXPLORAR FLASH →
             </Link>
             <Link
-              href="{hrefHoja}"
+              href={hrefHoja}
               className="border border-papel px-6 py-4 text-sm font-semibold tracking-widest text-papel no-underline"
             >
               TATÚO · ABRIR MI HOJA
@@ -171,7 +171,7 @@ export default async function Home() {
               <span className="text-lima">Abre tu hoja.</span>
             </span>
             <Link
-              href="{hrefHoja}"
+              href={hrefHoja}
               className="bg-lima px-6 py-4 text-sm font-semibold tracking-widest text-tinta no-underline"
             >
               CREAR PERFIL DE ARTISTA →

@@ -4,8 +4,20 @@ import { createClient } from "@/lib/supabase/server";
 import { Header } from "@/components/marca/Header";
 import { FormularioFlash } from "@/components/panel/FormularioFlash";
 import { FormularioIdea } from "@/components/panel/FormularioIdea";
+import { ListaSolicitudes, type FilaSolicitud } from "@/components/panel/ListaSolicitudes";
 
-export default async function Panel() {
+const MENSAJES_SOLICITUD: Record<string, string> = {
+  aceptada: "Solicitud aceptada. Acuerda la señal con el cliente.",
+  rechazada: "Solicitud rechazada. Si era un flash único, vuelve a estar disponible.",
+  error: "No se pudo responder a la solicitud. Puede que ya tuviera respuesta.",
+};
+
+export default async function Panel({
+  searchParams,
+}: {
+  searchParams: Promise<{ solicitud?: string }>;
+}) {
+  const { solicitud } = await searchParams;
   const supabase = await createClient();
   const {
     data: { user },
@@ -20,6 +32,23 @@ export default async function Panel() {
     .single();
 
   if (perfil?.rol !== "tatuador") redirect("/");
+
+  const { data: filas } = await supabase
+    .from("solicitudes")
+    .select(
+      "id, estado, zona, nota, fecha, hora_inicio, hora_fin, fecha_preferida, flashes!inner(titulo, tipo, tatuador_id), cliente:perfiles!cliente_id(nombre)",
+    )
+    .eq("flashes.tatuador_id", user.id)
+    .in("estado", ["pendiente", "aceptada"])
+    .order("fecha", { ascending: true, nullsFirst: false })
+    .order("creado_en", { ascending: true });
+
+  const solicitudes = (filas ?? []) as unknown as FilaSolicitud[];
+  const hoy = new Date().toISOString().slice(0, 10);
+  const pendientes = solicitudes.filter((s) => s.estado === "pendiente");
+  const aceptadas = solicitudes.filter(
+    (s) => s.estado === "aceptada" && (!s.fecha || s.fecha >= hoy),
+  );
 
   return (
     <>
@@ -64,7 +93,22 @@ export default async function Panel() {
           </Link>
         </div>
 
-        <div className="mt-10 grid gap-8 md:grid-cols-2">
+        {solicitud && MENSAJES_SOLICITUD[solicitud] && (
+          <p
+            role="status"
+            className={`mt-6 max-w-md text-sm font-semibold ${
+              solicitud === "error" ? "text-[#b3221c]" : "text-lima"
+            }`}
+          >
+            {MENSAJES_SOLICITUD[solicitud]}
+          </p>
+        )}
+
+        <div className="mt-10">
+          <ListaSolicitudes pendientes={pendientes} aceptadas={aceptadas} />
+        </div>
+
+        <div className="mt-12 grid gap-8 md:grid-cols-2">
           <FormularioFlash />
           <FormularioIdea />
         </div>
