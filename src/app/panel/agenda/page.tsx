@@ -7,7 +7,7 @@ import { FormularioBloqueo } from "@/components/panel/FormularioBloqueo";
 import { CapsulaGoogle } from "@/components/panel/CapsulaGoogle";
 import { Pista, BotonAyuda } from "@/components/panel/Ayuda";
 import { CalendarioAgenda, type CitaCal } from "@/components/panel/CalendarioAgenda";
-import { eliminarBloqueo } from "@/app/panel/agenda/actions";
+import { ListaBloqueos } from "@/components/panel/ListaBloqueos";
 
 const MENSAJES_GOOGLE: Record<string, string> = {
   conectado: "Google Calendar conectado. Tus huecos ya tienen en cuenta tus citas de ahí.",

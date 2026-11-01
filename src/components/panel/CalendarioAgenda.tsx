@@ -46,6 +46,26 @@ const top = (m: number) => ((Math.max(m, H_INICIO * 60) - H_INICIO * 60) / 60) *
 const alto = (a: number, b: number) =>
   ((Math.min(b, H_FIN * 60) - Math.max(a, H_INICIO * 60)) / 60) * ALTO_HORA;
 
+const CLASE_FLECHA =
+  "group/flecha grid h-9 w-9 place-items-center border-2 border-papel/40 text-papel transition-all hover:-translate-y-0.5 hover:border-lima hover:bg-lima hover:text-tinta focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lima";
+
+/** Flecha de "trazo de tinta": línea orgánica que engorda hacia la punta y gota al final. */
+function FlechaTinta({ dir }: { dir: -1 | 1 }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      width="20"
+      height="20"
+      aria-hidden="true"
+      className={`transition-transform ${dir === 1 ? "group-hover/flecha:translate-x-0.5" : "-scale-x-100 group-hover/flecha:-translate-x-0.5"}`}
+    >
+      <path d="M3.5 12.6c3.2-.9 7.4-1.3 12.6-.9l-.2 1.5c-4.9-.2-8.9.2-12 .9z" fill="currentColor" />
+      <path d="M12.8 6.2c2.6 1.9 5 3.8 7.4 5.9-2.3 2-4.7 3.9-7.3 5.7l-.9-1.1c2.1-1.6 4.1-3.1 6-4.6-1.9-1.6-3.9-3.1-6-4.7z" fill="currentColor" />
+      <circle cx="3" cy="13.3" r="1.1" fill="currentColor" />
+    </svg>
+  );
+}
+
 export function CalendarioAgenda({
   horario,
   bloqueos,
@@ -94,9 +114,12 @@ export function CalendarioAgenda({
           <span className="font-mono text-[11px] tracking-widest text-gris-claro">{semana[6].getFullYear()}</span>
         </div>
         <div className="flex items-center gap-2">
-          <button type="button" onClick={() => mover(-1)} aria-label="Anterior" className="grid h-8 w-8 place-items-center rounded-full border border-papel/30 transition-colors hover:border-lima hover:text-lima">‹</button>
-          <button type="button" onClick={() => setCursor(new Date())} className="rounded-full border border-papel/30 px-3 py-1 font-mono text-[11px] uppercase tracking-widest transition-colors hover:border-lima hover:text-lima">Hoy</button>
-          <button type="button" onClick={() => mover(1)} aria-label="Siguiente" className="grid h-8 w-8 place-items-center rounded-full border border-papel/30 transition-colors hover:border-lima hover:text-lima">›</button>
+          <button type="button" onClick={() => mover(-1)} aria-label={vista === "semana" ? "Semana anterior" : "Mes anterior"} className={CLASE_FLECHA}>
+            <FlechaTinta dir={-1} />
+          </button>
+          <button type="button" onClick={() => mover(1)} aria-label={vista === "semana" ? "Semana siguiente" : "Mes siguiente"} className={CLASE_FLECHA}>
+            <FlechaTinta dir={1} />
+          </button>
           <div role="tablist" className="ml-2 flex rounded-full bg-papel/10 p-1">
             {(["semana", "mes"] as const).map((v) => (
               <button

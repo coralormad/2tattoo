@@ -36,3 +36,4 @@
 ## Reglas
 - No releer archivos ya leídos en la misma sesión salvo que hayan cambiado.
 - Priorizar precisión sobre ahorro si hay duda real sobre el código.
+-Aplicar regla de máximo ahorro tras el fin de la decisión estetica. 
