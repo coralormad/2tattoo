@@ -16,8 +16,33 @@ const marcarVista = () => {
   document.cookie = "panel_intro=1; path=/; SameSite=Lax";
 };
 
-export function IntroTinta({ saludo }: { saludo: string }) {
-  const [visible, setVisible] = useState(true);
+const EVENTO_REPETIR = "2tattoo:repetir-intro";
+
+// Cápsula para volver a ver la intro (dispara un evento que escucha IntroTinta).
+export function BotonRepetirIntro() {
+  return (
+    <button
+      type="button"
+      onClick={() => window.dispatchEvent(new Event(EVENTO_REPETIR))}
+      className="group inline-flex items-center gap-2 rounded-full border border-papel/25 bg-papel/5 px-3 py-1 font-mono text-[10px] uppercase tracking-widest text-gris-claro backdrop-blur-md transition-colors hover:border-lima hover:text-lima motion-reduce:hidden"
+    >
+      <svg
+        viewBox="0 0 16 16"
+        className="h-3.5 w-3.5 transition-transform duration-500 group-hover:-rotate-[300deg]"
+        aria-hidden="true"
+      >
+        <path d="M13 8a5 5 0 1 1-1.6-3.7" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+        <path d="M12.6 1.6v3.2H9.4z" fill="currentColor" />
+      </svg>
+      Hora de tatuar
+      <span className="sr-only">: repetir la animación de entrada</span>
+    </button>
+  );
+}
+
+export function IntroTinta({ saludo, inicial = true }: { saludo: string; inicial?: boolean }) {
+  const [visible, setVisible] = useState(inicial);
+  const [vuelta, setVuelta] = useState(0);
 
   const terminar = () => {
     marcarVista();
@@ -30,15 +55,23 @@ export function IntroTinta({ saludo }: { saludo: string }) {
       marcarVista();
       setVisible(false);
     };
+    const alRepetir = () => {
+      setVuelta((v) => v + 1);
+      setVisible(true);
+    };
     window.addEventListener("keydown", alPulsar);
-    return () => window.removeEventListener("keydown", alPulsar);
+    window.addEventListener(EVENTO_REPETIR, alRepetir);
+    return () => {
+      window.removeEventListener("keydown", alPulsar);
+      window.removeEventListener(EVENTO_REPETIR, alRepetir);
+    };
   }, []);
 
   return (
     <AnimatePresence>
       {visible && (
         <motion.div
-          key="intro"
+          key={`intro-${vuelta}`}
           onClick={terminar}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.35, ease: "easeOut" }}

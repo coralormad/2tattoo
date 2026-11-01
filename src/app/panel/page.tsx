@@ -8,7 +8,7 @@ import { Revelar } from "@/components/efectos/Revelar";
 import { FormularioFlash } from "@/components/panel/FormularioFlash";
 import { FormularioIdea } from "@/components/panel/FormularioIdea";
 import { ListaSolicitudes, type FilaSolicitud } from "@/components/panel/ListaSolicitudes";
-import { IntroTinta } from "@/components/panel/IntroTinta";
+import { IntroTinta, BotonRepetirIntro } from "@/components/panel/IntroTinta";
 import { Pista, BotonAyuda } from "@/components/panel/Ayuda";
 import { Aviso, CabeceraTarjeta, CLASE_TARJETA, TituloSeccion } from "@/components/panel/ui";
 
@@ -110,12 +110,15 @@ export default async function Panel({
 
   return (
     <>
-      {verIntro && <IntroTinta saludo={`${saludo} · ${fechaTexto} · ${horaTexto}`} />}
+      <IntroTinta inicial={verIntro} saludo={`${saludo} · ${fechaTexto} · ${horaTexto}`} />
       <Header />
 
       <section className="reticula px-4 pb-18 pt-10 sm:px-10">
-        <div className="flex flex-wrap justify-between gap-2 font-mono text-[11px] uppercase tracking-widest text-gris">
-          <span>Panel · {saludo}</span>
+        <div className="flex flex-wrap items-center justify-between gap-2 font-mono text-[11px] uppercase tracking-widest text-gris">
+          <span className="flex flex-wrap items-center gap-3">
+            Panel · {saludo}
+            <BotonRepetirIntro />
+          </span>
           <span>Hoja Nº 002 — {perfil.nombre ?? "Tatuador"}</span>
         </div>
 

@@ -4,7 +4,6 @@ import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import { type AuthError, type EmailOtpType } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
-import { createAdminClient } from "@/lib/supabase/admin";
 
 export type EstadoFormulario = { error: string } | null;
 
@@ -86,22 +85,6 @@ export async function registrarse(
   }
 
   const metadatos = { rol, nombre: nombre || null, usuario: rol === "tatuador" ? usuario : null };
-
-  // Solo en local: crea la cuenta ya confirmada sin enviar email (Resend en
-  // modo prueba solo envía a la cuenta dueña). En producción, flujo normal.
-  if (process.env.NODE_ENV === "development") {
-    const { error: errorAdmin } = await createAdminClient().auth.admin.createUser({
-      email,
-      password,
-      email_confirm: true,
-      user_metadata: metadatos,
-    });
-    if (errorAdmin) return traducirErrorRegistro(errorAdmin);
-
-    const { error: errorLogin } = await supabase.auth.signInWithPassword({ email, password });
-    if (errorLogin) redirect("/login");
-    redirect("/");
-  }
 
   const origin = (await headers()).get("origin");
   const { error } = await supabase.auth.signUp({
