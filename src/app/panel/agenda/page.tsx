@@ -8,6 +8,8 @@ import { CapsulaGoogle } from "@/components/panel/CapsulaGoogle";
 import { Pista, BotonAyuda } from "@/components/panel/Ayuda";
 import { CalendarioAgenda, type CitaCal } from "@/components/panel/CalendarioAgenda";
 import { ListaBloqueos } from "@/components/panel/ListaBloqueos";
+import { Aviso, TituloSeccion } from "@/components/panel/ui";
+import { FlechaTinta } from "@/components/marca/FlechaTinta";
 
 const MENSAJES_GOOGLE: Record<string, string> = {
   conectado: "Google Calendar conectado. Tus huecos ya tienen en cuenta tus citas de ahí.",
@@ -17,7 +19,7 @@ const MENSAJES_GOOGLE: Record<string, string> = {
 };
 
 const MENSAJES_HORARIO: Record<string, { texto: string; aviso?: boolean }> = {
-  guardado: { texto: "✓ Horario guardado. Ya es el que verán tus clientes." },
+  guardado: { texto: "Horario guardado. Ya es el que verán tus clientes." },
   vacio: {
     texto:
       "Has guardado un horario vacío: no marcaste ningún día, así que ahora mismo no tienes ningún hueco disponible para reservar.",
@@ -120,8 +122,11 @@ export default async function Agenda({
       <Header />
 
       <section className="reticula px-4 pb-18 pt-10 sm:px-10">
-        <Link href="/panel" className="text-[11px] font-semibold tracking-widest text-gris">
-          ← Volver al panel
+        <Link
+          href="/panel"
+          className="group/flecha inline-flex items-center gap-2 font-mono text-[11px] font-semibold uppercase tracking-widest text-gris no-underline hover:text-lima"
+        >
+          <FlechaTinta dir={-1} tam={16} /> Volver al panel
         </Link>
 
         <div className="mt-5 flex items-end justify-between gap-4">
@@ -137,25 +142,11 @@ export default async function Agenda({
         </Pista>
 
         {google && MENSAJES_GOOGLE[google] && (
-          <p
-            role="status"
-            className={`mt-4 max-w-md text-sm font-semibold ${
-              google === "conectado" ? "text-lima" : "text-[#b3221c]"
-            }`}
-          >
-            {MENSAJES_GOOGLE[google]}
-          </p>
+          <Aviso tipo={google === "conectado" ? "ok" : "error"}>{MENSAJES_GOOGLE[google]}</Aviso>
         )}
 
         {horario && MENSAJES_HORARIO[horario] && (
-          <p
-            role="status"
-            className={`mt-4 max-w-md text-sm font-semibold ${
-              MENSAJES_HORARIO[horario].aviso ? "text-[#b3221c]" : "text-lima"
-            }`}
-          >
-            {MENSAJES_HORARIO[horario].texto}
-          </p>
+          <Aviso tipo={MENSAJES_HORARIO[horario].aviso ? "error" : "ok"}>{MENSAJES_HORARIO[horario].texto}</Aviso>
         )}
 
         <CapsulaGoogle conectado={googleConectado} />
@@ -168,34 +159,16 @@ export default async function Agenda({
           <FormularioDisponibilidad previa={previa} proximos={proximos} />
         </div>
 
-        <div className="mt-14 grid items-start gap-8 md:grid-cols-2">
-            <FormularioBloqueo />
+        <div className="mt-14">
+          <TituloSeccion
+            resaltado="Bloqueos"
+            contador={`${(bloqueos ?? []).length} ${(bloqueos ?? []).length === 1 ? "próximo" : "próximos"}`}
+          />
 
-            {bloqueos && bloqueos.length > 0 && (
-              <div className="flex flex-col gap-3 border-b-2 border-r-2 border-carbon bg-papel-claro p-6 text-carbon">
-                <span className="text-[11px] font-semibold uppercase tracking-widest">
-                  Próximos bloqueos
-                </span>
-                {bloqueos.map((b) => (
-                  <div
-                    key={b.id}
-                    className="flex items-center justify-between gap-3 border-t border-dashed border-carbon pt-3 text-[13px]"
-                  >
-                    <span>
-                      {b.fecha}
-                      {b.hora_inicio ? ` · ${b.hora_inicio.slice(0, 5)}–${b.hora_fin?.slice(0, 5)}` : " · día entero"}
-                      {b.motivo ? ` · ${b.motivo}` : ""}
-                    </span>
-                    <form action={eliminarBloqueo}>
-                      <input type="hidden" name="id" value={b.id} />
-                      <button type="submit" className="text-xs font-semibold text-[#b3221c]">
-                        QUITAR
-                      </button>
-                    </form>
-                  </div>
-                ))}
-              </div>
-            )}
+          <div className="mt-5 grid items-start gap-8 md:grid-cols-2">
+            <FormularioBloqueo />
+            <ListaBloqueos bloqueos={bloqueos ?? []} />
+          </div>
         </div>
       </section>
     </>

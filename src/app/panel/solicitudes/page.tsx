@@ -1,114 +1,130 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { createClient } from "../../../lib/supabase/server";
-import { responderSolicitud } from "./actions";
+import { createClient } from "@/lib/supabase/server";
+import { Header } from "@/components/marca/Header";
+import { FlechaTinta } from "@/components/marca/FlechaTinta";
+import { Revelar } from "@/components/efectos/Revelar";
+import { TicketSolicitud, type FilaSolicitud } from "@/components/panel/ListaSolicitudes";
 
-type Solicitud = {
-  id: string;
-  zona: string | null;
-  fecha_preferida: string | null;
-  nota: string | null;
-  estado: "pendiente" | "aceptada" | "rechazada";
-  creado_en: string;
-  flashes: { titulo: string } | null;
-  perfiles: { usuario: string } | null;
-};
+const FILTROS = [
+  { valor: "todas", etiqueta: "Todas" },
+  { valor: "aceptada", etiqueta: "Aceptadas" },
+  { valor: "rechazada", etiqueta: "Rechazadas" },
+] as const;
 
-export default async function SolicitudesPage() {
+const MESES = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+
+export default async function Historial({
+  searchParams,
+}: {
+  searchParams: Promise<{ filtro?: string }>;
+}) {
+  const { filtro: filtroParam } = await searchParams;
+  const filtro = FILTROS.some((f) => f.valor === filtroParam) ? filtroParam! : "todas";
+
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const { data: perfil } = await supabase
-    .from("perfiles")
-    .select("rol")
-    .eq("id", user.id)
-    .single();
+  const { data: perfil } = await supabase.from("perfiles").select("rol").eq("id", user.id).single();
   if (perfil?.rol !== "tatuador") redirect("/");
 
   const { data } = await supabase
     .from("solicitudes")
     .select(
-      "id, zona, fecha_preferida, nota, estado, creado_en, flashes!inner(titulo, tatuador_id), perfiles(usuario)"
+      "id, estado, zona, nota, fecha, hora_inicio, hora_fin, fecha_preferida, creado_en, flashes!inner(titulo, tipo, tatuador_id), cliente:perfiles!cliente_id(nombre)",
     )
     .eq("flashes.tatuador_id", user.id)
+    .in("estado", ["aceptada", "rechazada"])
+    .order("fecha", { ascending: false, nullsFirst: false })
     .order("creado_en", { ascending: false });
 
-  const solicitudes = (data ?? []) as unknown as Solicitud[];
-  const pendientes = solicitudes.filter((s) => s.estado === "pendiente");
-  const historial = solicitudes.filter((s) => s.estado !== "pendiente");
+  const todas = (data ?? []) as unknown as (FilaSolicitud & { creado_en: string })[];
+  const cuenta = {
+    todas: todas.length,
+    aceptada: todas.filter((s) => s.estado === "aceptada").length,
+    rechazada: todas.filter((s) => s.estado === "rechazada").length,
+  };
+  const lista = filtro === "todas" ? todas : todas.filter((s) => s.estado === filtro);
+
+  // Agrupar por mes de la cita (o de la solicitud si no tiene fecha).
+  const grupos = new Map<string, typeof lista>();
+  for (const s of lista) {
+    const clave = (s.fecha ?? s.creado_en).slice(0, 7);
+    grupos.set(clave, [...(grupos.get(clave) ?? []), s]);
+  }
 
   return (
-    <main className="mx-auto max-w-4xl px-4 py-10 font-mono">
-      <Link href="/panel" className="text-xs uppercase opacity-60 hover:opacity-100">
-        ← Panel
-      </Link>
-      <h1 className="mt-4 text-4xl uppercase">Solicitudes</h1>
+    <>
+      <Header />
 
-      <section className="mt-8">
-        <h2 className="text-xs uppercase opacity-60">
-          Pendientes · {pendientes.length}
-        </h2>
-        {pendientes.length === 0 && (
-          <p className="mt-4 text-sm opacity-60">No tienes solicitudes pendientes.</p>
+      <section className="reticula px-4 pb-18 pt-10 sm:px-10">
+        <Link
+          href="/panel"
+          className="group/flecha inline-flex items-center gap-2 font-mono text-[11px] font-semibold uppercase tracking-widest text-gris no-underline hover:text-lima"
+        >
+          <FlechaTinta dir={-1} tam={16} /> Volver al panel
+        </Link>
+
+        <h1 className="font-display mt-5 text-[clamp(2.5rem,7vw,5rem)] uppercase leading-[0.9]">
+          Tu <span className="text-lima">historial</span>.
+        </h1>
+        <p className="mt-3 max-w-md font-mono text-[12px] uppercase tracking-widest text-gris">
+          Solicitudes que ya respondiste. Las pendientes están en el panel.
+        </p>
+
+        <nav aria-label="Filtrar historial" className="mt-8 flex flex-wrap gap-2">
+          {FILTROS.map((f) => {
+            const activo = filtro === f.valor;
+            return (
+              <Link
+                key={f.valor}
+                href={f.valor === "todas" ? "/panel/solicitudes" : `/panel/solicitudes?filtro=${f.valor}`}
+                aria-current={activo ? "page" : undefined}
+                className={`rounded-full border-2 px-4 py-1.5 font-mono text-[11px] font-semibold uppercase tracking-widest no-underline transition-colors ${
+                  activo ? "border-lima bg-lima text-tinta" : "border-papel/25 text-gris-claro hover:border-lima hover:text-lima"
+                }`}
+              >
+                {f.etiqueta} · {cuenta[f.valor]}
+              </Link>
+            );
+          })}
+        </nav>
+
+        {lista.length === 0 ? (
+          <div className="mt-8 grid min-h-[180px] place-items-center border-2 border-dashed border-papel/25 p-8 text-center">
+            <div>
+              <span className="font-display block text-3xl uppercase leading-none">Nada por aquí</span>
+              <span className="mt-2 block font-mono text-[11px] uppercase tracking-widest text-gris">
+                Cuando respondas solicitudes, quedarán guardadas aquí
+              </span>
+            </div>
+          </div>
+        ) : (
+          <div className="mt-10 flex flex-col gap-10">
+            {[...grupos.entries()].map(([clave, items], i) => {
+              const [anio, mes] = clave.split("-").map(Number);
+              return (
+                <Revelar key={clave} retraso={Math.min(i * 0.05, 0.2)}>
+                  <h2 className="flex items-baseline gap-3 border-b border-dashed border-papel/25 pb-2">
+                    <span className="font-display text-3xl uppercase leading-none">{MESES[mes - 1]}</span>
+                    <span className="font-mono text-[11px] tracking-widest text-gris">
+                      {anio} · {items.length}
+                    </span>
+                  </h2>
+                  <div className="mt-4 grid gap-4 md:grid-cols-2">
+                    {items.map((s) => (
+                      <TicketSolicitud key={s.id} s={s} />
+                    ))}
+                  </div>
+                </Revelar>
+              );
+            })}
+          </div>
         )}
-        <ul className="mt-4 space-y-4">
-          {pendientes.map((s) => (
-            <li key={s.id} className="border border-current/20 p-4">
-              <Datos s={s} />
-              <div className="mt-4 flex gap-3">
-                <form action={responderSolicitud}>
-                  <input type="hidden" name="id" value={s.id} />
-                  <input type="hidden" name="estado" value="aceptada" />
-                  <button className="bg-[#D4FF3A] px-4 py-2 text-xs uppercase text-black">
-                    Aceptar
-                  </button>
-                </form>
-                <form action={responderSolicitud}>
-                  <input type="hidden" name="id" value={s.id} />
-                  <input type="hidden" name="estado" value="rechazada" />
-                  <button className="border border-current px-4 py-2 text-xs uppercase">
-                    Rechazar
-                  </button>
-                </form>
-              </div>
-            </li>
-          ))}
-        </ul>
       </section>
-
-      {historial.length > 0 && (
-        <section className="mt-12">
-          <h2 className="text-xs uppercase opacity-60">Historial</h2>
-          <ul className="mt-4 space-y-3">
-            {historial.map((s) => (
-              <li key={s.id} className="border border-current/10 p-4 opacity-70">
-                <Datos s={s} />
-                <p className="mt-2 text-xs uppercase">
-                  {s.estado === "aceptada" ? "✓ Aceptada" : "✕ Rechazada"}
-                </p>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
-    </main>
-  );
-}
-
-function Datos({ s }: { s: Solicitud }) {
-  return (
-    <div className="space-y-1 text-sm">
-      <p className="text-lg uppercase">{s.flashes?.titulo ?? "Flash"}</p>
-      <p className="opacity-70">
-        @{s.perfiles?.usuario ?? "cliente"} ·{" "}
-        {new Date(s.creado_en).toLocaleDateString("es-ES")}
-      </p>
-      {s.zona && <p>Zona: {s.zona}</p>}
-      {s.fecha_preferida && <p>Fecha preferida: {s.fecha_preferida}</p>}
-      {s.nota && <p className="opacity-80">“{s.nota}”</p>}
-    </div>
+    </>
   );
 }

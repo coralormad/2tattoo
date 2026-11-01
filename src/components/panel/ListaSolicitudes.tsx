@@ -1,4 +1,6 @@
+import type { ReactNode } from "react";
 import { responderSolicitud } from "@/app/panel/actions";
+import { RAYAS_ROJAS } from "@/components/panel/ui";
 
 export type FilaSolicitud = {
   id: string;
@@ -13,62 +15,141 @@ export type FilaSolicitud = {
   cliente: { nombre: string | null } | null;
 };
 
-function cuando(s: FilaSolicitud) {
-  if (s.fecha && s.hora_inicio) {
-    return `${s.fecha} · ${s.hora_inicio.slice(0, 5)}–${s.hora_fin?.slice(0, 5) ?? ""}`;
-  }
-  return s.fecha_preferida ?? "Sin fecha";
+const MESES = ["ENE", "FEB", "MAR", "ABR", "MAY", "JUN", "JUL", "AGO", "SEP", "OCT", "NOV", "DIC"];
+const DIAS = ["DOM", "LUN", "MAR", "MIÉ", "JUE", "VIE", "SÁB"];
+const ES_FECHA = /^\d{4}-\d{2}-\d{2}$/;
+
+function talon(s: FilaSolicitud) {
+  const f = s.fecha ?? (s.fecha_preferida && ES_FECHA.test(s.fecha_preferida) ? s.fecha_preferida : null);
+  if (!f) return null;
+  const d = new Date(`${f}T00:00:00`);
+  return { dia: d.getDate(), mes: MESES[d.getMonth()], semana: DIAS[d.getDay()] };
 }
 
-function Tarjeta({ s, numero }: { s: FilaSolicitud; numero: number }) {
-  const pendiente = s.estado === "pendiente";
+function hora(s: FilaSolicitud) {
+  if (s.hora_inicio) return `${s.hora_inicio.slice(0, 5)}–${s.hora_fin?.slice(0, 5) ?? ""}`;
+  if (s.fecha_preferida && !ES_FECHA.test(s.fecha_preferida)) return s.fecha_preferida;
+  return s.fecha ? "Hora a convenir" : "Fecha a convenir";
+}
+
+const ESTILO = {
+  pendiente: {
+    tarjeta: "border-dashed border-carbon bg-papel-claro",
+    talon: "bg-papel-claro",
+    sello: "border-carbon text-carbon",
+    texto: "Pendiente",
+  },
+  aceptada: {
+    tarjeta: "border-solid border-carbon bg-papel-claro",
+    talon: "bg-lima",
+    sello: "border-carbon bg-carbon text-lima",
+    texto: "Aceptada ✓",
+  },
+  rechazada: {
+    tarjeta: "border-solid border-carbon/40 bg-papel-claro/80 text-carbon/70",
+    talon: RAYAS_ROJAS,
+    sello: "border-[#b3221c] text-[#b3221c]",
+    texto: "Rechazada ✕",
+  },
+} as const;
+
+export function TicketSolicitud({ s, acciones = false }: { s: FilaSolicitud; acciones?: boolean }) {
+  const t = talon(s);
+  const e = ESTILO[s.estado];
 
   return (
-    <article className="flex flex-col gap-3 border-b-2 border-r-2 border-carbon bg-papel-claro p-5 text-carbon">
-      <div className="flex justify-between border-b border-dashed border-carbon pb-2 text-[11px] font-semibold uppercase tracking-widest">
-        <span>{s.flashes?.titulo ?? "Flash"}{s.flashes?.tipo === "flash_unico" ? " · único" : ""}</span>
-        <span>Nº {String(numero).padStart(2, "0")}</span>
+    <article
+      className={`group flex border-2 text-carbon transition-all hover:-translate-y-0.5 hover:shadow-[5px_5px_0_var(--color-lima)] ${e.tarjeta}`}
+    >
+      {/* Talón */}
+      <div
+        className={`flex w-18 shrink-0 flex-col items-center justify-center border-r-2 border-dashed border-carbon py-4 ${e.talon}`}
+      >
+        {t ? (
+          <>
+            <span className="font-mono text-[10px] tracking-widest">{t.semana}</span>
+            <span className="font-display text-4xl leading-none">{t.dia}</span>
+            <span className="font-mono text-[10px] tracking-widest">{t.mes}</span>
+          </>
+        ) : (
+          <span className="font-display text-3xl leading-none">¿?</span>
+        )}
       </div>
 
-      <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-[13px]">
-        <dt className="text-[#666]">Cliente</dt>
-        <dd className="font-semibold">{s.cliente?.nombre ?? "—"}</dd>
-        <dt className="text-[#666]">Cuándo</dt>
-        <dd className="font-mono">{cuando(s)}</dd>
-        <dt className="text-[#666]">Zona</dt>
-        <dd>{s.zona ?? "—"}</dd>
-        {s.nota && (
-          <>
-            <dt className="text-[#666]">Nota</dt>
-            <dd className="whitespace-pre-line">{s.nota}</dd>
-          </>
-        )}
-      </dl>
+      <div className="flex min-w-0 flex-1 flex-col gap-2 p-4">
+        <div className="flex items-start justify-between gap-3">
+          <h3 className="font-display text-2xl uppercase leading-none">
+            {s.flashes?.titulo ?? "Flash"}
+            {s.flashes?.tipo === "flash_unico" && (
+              <span className="ml-2 align-middle font-mono text-[10px] tracking-widest text-[#666]">· ÚNICO</span>
+            )}
+          </h3>
+          <span
+            className={`shrink-0 -rotate-2 border-2 px-2 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-widest ${e.sello}`}
+          >
+            {e.texto}
+          </span>
+        </div>
 
-      {pendiente ? (
-        <form action={responderSolicitud} className="mt-1 flex items-center gap-4">
-          <input type="hidden" name="id" value={s.id} />
-          <button
-            type="submit"
-            name="estado"
-            value="aceptada"
-            className="font-display border-2 border-carbon bg-carbon px-4 py-2 text-sm uppercase text-papel shadow-[4px_4px_0_var(--color-lima)] transition-transform hover:-translate-y-0.5"
-          >
-            Aceptar →
-          </button>
-          <button
-            type="submit"
-            name="estado"
-            value="rechazada"
-            className="text-xs font-semibold tracking-widest text-[#b3221c]"
-          >
-            RECHAZAR
-          </button>
-        </form>
-      ) : (
-        <span className="text-[11px] font-semibold uppercase tracking-widest">Aceptada ✓</span>
-      )}
+        <p className="font-mono text-[12px] uppercase">
+          {hora(s)} · <span className="font-semibold">{s.cliente?.nombre ?? "Cliente"}</span>
+          {s.zona && <span className="text-[#666]"> · {s.zona}</span>}
+        </p>
+
+        {s.nota && (
+          <p className="line-clamp-3 border-l-2 border-lima pl-3 text-[13px] italic leading-relaxed text-[#444]">
+            “{s.nota}”
+          </p>
+        )}
+
+        {acciones && s.estado === "pendiente" && (
+          <form action={responderSolicitud} className="mt-1 flex items-center gap-3">
+            <input type="hidden" name="id" value={s.id} />
+            <button
+              type="submit"
+              name="estado"
+              value="aceptada"
+              className="font-display border-2 border-carbon bg-carbon px-4 py-2 text-base uppercase text-papel shadow-[4px_4px_0_var(--color-lima)] transition-transform hover:-translate-y-0.5"
+            >
+              Aceptar →
+            </button>
+            <button
+              type="submit"
+              name="estado"
+              value="rechazada"
+              className="flex items-center gap-1.5 rounded-full border-2 border-[#b3221c] px-3 py-1.5 font-mono text-[11px] font-semibold uppercase tracking-widest text-[#b3221c] transition-colors hover:bg-[#b3221c] hover:text-papel"
+            >
+              ✕ Rechazar
+            </button>
+          </form>
+        )}
+      </div>
     </article>
+  );
+}
+
+function Vacio({ titulo, texto }: { titulo: string; texto: string }) {
+  return (
+    <div className="grid min-h-[140px] place-items-center border-2 border-dashed border-papel/25 p-6 text-center">
+      <div>
+        <span className="font-display block text-2xl uppercase leading-none">{titulo}</span>
+        <span className="mt-2 block font-mono text-[11px] uppercase tracking-widest text-gris">{texto}</span>
+      </div>
+    </div>
+  );
+}
+
+function Subtitulo({ children, punto }: { children: ReactNode; punto?: boolean }) {
+  return (
+    <h3 className="flex items-center gap-2 font-mono text-[11px] font-semibold uppercase tracking-widest text-gris-claro">
+      {punto && (
+        <span className="relative flex h-2.5 w-2.5" aria-hidden="true">
+          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-lima opacity-75 motion-reduce:animate-none" />
+          <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-lima" />
+        </span>
+      )}
+      {children}
+    </h3>
   );
 }
 
@@ -80,34 +161,32 @@ export function ListaSolicitudes({
   aceptadas: FilaSolicitud[];
 }) {
   return (
-    <div className="flex flex-col gap-8">
-      <div>
-        <h2 className="text-[11px] font-semibold uppercase tracking-widest text-gris">
-          Solicitudes pendientes · {pendientes.length}
-        </h2>
+    <div className="flex flex-col gap-10">
+      <div className="flex flex-col gap-3">
+        <Subtitulo punto={pendientes.length > 0}>Esperan tu respuesta · {pendientes.length}</Subtitulo>
         {pendientes.length === 0 ? (
-          <p className="mt-3 text-sm text-gris-claro">Nada pendiente. Cuando alguien pida un flash, aparecerá aquí.</p>
+          <Vacio titulo="Nada pendiente" texto="Cuando alguien pida un flash, aparecerá aquí" />
         ) : (
-          <div className="mt-3 grid gap-4 md:grid-cols-2">
-            {pendientes.map((s, i) => (
-              <Tarjeta key={s.id} s={s} numero={i + 1} />
+          <div className="grid gap-4 md:grid-cols-2">
+            {pendientes.map((s) => (
+              <TicketSolicitud key={s.id} s={s} acciones />
             ))}
           </div>
         )}
       </div>
 
-      {aceptadas.length > 0 && (
-        <div>
-          <h2 className="text-[11px] font-semibold uppercase tracking-widest text-gris">
-            Próximas citas · {aceptadas.length}
-          </h2>
-          <div className="mt-3 grid gap-4 md:grid-cols-2">
-            {aceptadas.map((s, i) => (
-              <Tarjeta key={s.id} s={s} numero={i + 1} />
+      <div className="flex flex-col gap-3">
+        <Subtitulo>Próximas citas · {aceptadas.length}</Subtitulo>
+        {aceptadas.length === 0 ? (
+          <Vacio titulo="Sin citas a la vista" texto="Las solicitudes que aceptes se colocan aquí" />
+        ) : (
+          <div className="grid gap-4 md:grid-cols-2">
+            {aceptadas.map((s) => (
+              <TicketSolicitud key={s.id} s={s} />
             ))}
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }

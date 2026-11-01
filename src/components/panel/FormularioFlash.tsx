@@ -3,103 +3,109 @@
 import { useActionState } from "react";
 import { publicarFlash } from "@/app/panel/actions";
 import { CampoFicha } from "@/components/marca/CampoFicha";
-import { SelectorFicha } from "@/components/marca/SelectorFicha";
+import { IconoFlash, type TipoIconoFlash } from "@/components/marca/IconoFlash";
+import {
+  CabeceraTarjeta,
+  ChipRadio,
+  CLASE_BOTON_PRIMARIO,
+  CLASE_TARJETA,
+  GrupoChips,
+} from "@/components/panel/ui";
+
+const ICONOS: { valor: TipoIconoFlash; etiqueta: string }[] = [
+  { valor: "star", etiqueta: "Estrella" },
+  { valor: "moon", etiqueta: "Luna" },
+  { valor: "dagger", etiqueta: "Daga" },
+  { valor: "snake", etiqueta: "Serpiente" },
+];
+
+const DURACIONES = [
+  { valor: "30", etiqueta: "30 min" },
+  { valor: "60", etiqueta: "1 h" },
+  { valor: "90", etiqueta: "1 h 30" },
+  { valor: "120", etiqueta: "2 h" },
+  { valor: "180", etiqueta: "3 h" },
+  { valor: "240", etiqueta: "4 h" },
+];
 
 export function FormularioFlash() {
   const [estado, accion, enviando] = useActionState(publicarFlash, null);
 
   return (
-    <form
-      action={accion}
-      noValidate
-      className="flex flex-col gap-5 border-b-2 border-r-2 border-carbon bg-papel-claro p-6 text-carbon"
-    >
-      <div className="flex justify-between border-b border-dashed border-carbon pb-3 text-[11px] font-semibold uppercase tracking-widest">
-        <span>Publicar flash</span>
-        <span>Nº 01</span>
-      </div>
+    <form action={accion} noValidate className={CLASE_TARJETA}>
+      <CabeceraTarjeta titulo="Publicar flash" numero="01" />
 
-      <CampoFicha
-        numero="01"
-        etiqueta="Título"
-        id="flash-titulo"
-        name="titulo"
-        type="text"
-        placeholder="Golondrina pequeña"
-        required
-      />
-
-      <SelectorFicha numero="02" etiqueta="Tipo" id="flash-tipo" name="tipo" defaultValue="flash">
-        <option value="flash">Flash (repetible)</option>
-        <option value="flash_unico">Flash único</option>
-      </SelectorFicha>
-
-      <SelectorFicha numero="03" etiqueta="Icono" id="flash-icono" name="icono" defaultValue="star">
-        <option value="star">Estrella</option>
-        <option value="moon">Luna</option>
-        <option value="dagger">Daga</option>
-        <option value="snake">Serpiente</option>
-      </SelectorFicha>
-
-      <div className="grid grid-cols-2 gap-4">
+      <div className="flex flex-col gap-6 p-5">
         <CampoFicha
-          numero="04"
-          etiqueta="Medida (cm)"
-          id="flash-medida"
-          name="medida_cm"
-          type="number"
-          min="1"
-          step="0.5"
+          numero="01"
+          etiqueta="Título"
+          id="flash-titulo"
+          name="titulo"
+          type="text"
+          placeholder="Golondrina pequeña"
+          required
         />
-        <CampoFicha
-          numero="05"
-          etiqueta="Precio desde (€)"
-          id="flash-precio"
-          name="precio_desde"
-          type="number"
-          min="0"
-          step="1"
-        />
+
+        <GrupoChips numero="02" etiqueta="Tipo">
+          <ChipRadio name="tipo" value="flash" defaultChecked>
+            Repetible
+          </ChipRadio>
+          <ChipRadio name="tipo" value="flash_unico">
+            Único
+          </ChipRadio>
+        </GrupoChips>
+
+        <GrupoChips numero="03" etiqueta="Icono">
+          {ICONOS.map((i, n) => (
+            <ChipRadio key={i.valor} name="icono" value={i.valor} defaultChecked={n === 0}>
+              <IconoFlash tipo={i.valor} className="h-4 w-4" />
+              {i.etiqueta}
+            </ChipRadio>
+          ))}
+        </GrupoChips>
+
+        <div className="grid grid-cols-2 gap-4">
+          <CampoFicha
+            numero="04"
+            etiqueta="Medida (cm)"
+            id="flash-medida"
+            name="medida_cm"
+            type="number"
+            min="1"
+            step="0.5"
+          />
+          <CampoFicha
+            numero="05"
+            etiqueta="Precio desde (€)"
+            id="flash-precio"
+            name="precio_desde"
+            type="number"
+            min="0"
+            step="1"
+          />
+        </div>
+
+        <CampoFicha numero="06" etiqueta="Ciudad" id="flash-ciudad" name="ciudad" type="text" placeholder="Sevilla" />
+
+        <GrupoChips numero="07" etiqueta="Duración aprox.">
+          {DURACIONES.map((d) => (
+            <ChipRadio key={d.valor} name="duracion_min" value={d.valor} defaultChecked={d.valor === "60"}>
+              {d.etiqueta}
+            </ChipRadio>
+          ))}
+        </GrupoChips>
+
+        {estado?.error && (
+          <p role="alert" className="text-sm font-semibold text-[#b3221c]">
+            {estado.error}
+          </p>
+        )}
+
+        <button type="submit" disabled={enviando} className={CLASE_BOTON_PRIMARIO}>
+          <span>{enviando ? "Publicando…" : "Publicar flash"}</span>
+          <span aria-hidden="true">→</span>
+        </button>
       </div>
-
-      <CampoFicha
-        numero="06"
-        etiqueta="Ciudad"
-        id="flash-ciudad"
-        name="ciudad"
-        type="text"
-        placeholder="Sevilla"
-      />
-
-      <SelectorFicha
-        numero="07"
-        etiqueta="Duración aprox."
-        id="flash-duracion"
-        name="duracion_min"
-        defaultValue="60"
-      >
-        <option value="30">30 min</option>
-        <option value="60">1 h</option>
-        <option value="90">1 h 30</option>
-        <option value="120">2 h</option>
-        <option value="180">3 h</option>
-        <option value="240">4 h</option>
-      </SelectorFicha>
-
-      {estado?.error && (
-        <p role="alert" className="text-sm text-[#b3221c]">
-          {estado.error}
-        </p>
-      )}
-
-      <button
-        type="submit"
-        disabled={enviando}
-        className="font-display flex items-center justify-between border-2 border-carbon bg-carbon px-5 py-4 text-xl uppercase text-papel shadow-[6px_6px_0_var(--color-lima)] transition-transform hover:-translate-y-0.5 disabled:opacity-60"
-      >
-        <span>{enviando ? "Publicando…" : "Publicar flash"}</span>
-        <span aria-hidden="true">→</span>
-      </button>
     </form>
   );
 }
