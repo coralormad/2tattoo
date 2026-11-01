@@ -30,7 +30,7 @@ export async function solicitarFlash(
 
   const { data: flash } = await supabase
     .from("flashes")
-    .select("tatuador_id")
+    .select("tatuador_id, duracion_min")
     .eq("id", flashId)
     .single();
 
@@ -40,7 +40,11 @@ export async function solicitarFlash(
   // cliente puede estar desactualizado (alguien más lo reservó, o el
   // tatuador cambió su horario) entre que se cargó la página y se envió
   // el formulario.
-  const huecosReales = await obtenerHuecosDisponibles(supabase, flash.tatuador_id);
+  const huecosReales = await obtenerHuecosDisponibles(
+    supabase,
+    flash.tatuador_id,
+    flash.duracion_min,
+  );
   const huecoValido = huecosReales.some(
     (h) => h.fecha === fecha && h.horaInicio === horaInicio && h.horaFin === horaFin,
   );

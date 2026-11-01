@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { IconoFlash, type TipoIconoFlash } from "@/components/marca/IconoFlash";
+import { BotonPostular } from "@/components/ideas/BotonPostular";
+import type { RolVisitante } from "@/lib/postulaciones";
 
 type FlashResumen = {
   id: string;
@@ -22,12 +24,14 @@ type IdeaResumen = {
 type PerfilTabsProps = {
   flashes: FlashResumen[];
   ideas: IdeaResumen[];
+  rol: RolVisitante;
+  postuladas: string[];
 };
 
 type Pestaña = "flash" | "ideas" | "tatuado";
 
 /** Pestañas Flash / Ideas / Tatuado del perfil público, a juego con el prototipo aprobado. */
-export function PerfilTabs({ flashes, ideas }: PerfilTabsProps) {
+export function PerfilTabs({ flashes, ideas, rol, postuladas }: PerfilTabsProps) {
   const [tab, setTab] = useState<Pestaña>("flash");
 
   const pestañas: { id: Pestaña; etiqueta: string }[] = [
@@ -105,12 +109,13 @@ export function PerfilTabs({ flashes, ideas }: PerfilTabsProps) {
                 {i.texto && <p className="text-[13px] leading-relaxed">{i.texto}</p>}
                 <div className="flex items-center justify-between border-t border-dashed border-carbon pt-3 text-xs">
                   <span>{i.zona ?? ""}</span>
-                  <a
-                    href="/login"
+                  <BotonPostular
+                    ideaId={i.id}
+                    titulo={i.titulo}
+                    rol={rol}
+                    yaPostulada={postuladas.includes(i.id)}
                     className="bg-tinta px-3 py-2 font-semibold tracking-widest text-lima no-underline"
-                  >
-                    ME POSTULO →
-                  </a>
+                  />
                 </div>
               </article>
             ))}

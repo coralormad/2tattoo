@@ -18,7 +18,7 @@ export default async function FichaFlash({
     supabase
       .from("flashes")
       .select(
-        "id, titulo, tipo, icono, medida_cm, precio_desde, ciudad, estado, tatuador_id, perfiles(usuario, nombre)",
+        "id, titulo, tipo, icono, medida_cm, precio_desde, ciudad, estado, tatuador_id, duracion_min, perfiles(usuario, nombre)",
       )
       .eq("id", id)
       .single(),
@@ -27,7 +27,7 @@ export default async function FichaFlash({
 
   if (!flash) notFound();
 
-  const huecos = await obtenerHuecosDisponibles(supabase, flash.tatuador_id);
+  const huecos = await obtenerHuecosDisponibles(supabase, flash.tatuador_id, flash.duracion_min);
 
   const perfilArtista = Array.isArray(flash.perfiles) ? flash.perfiles[0] : flash.perfiles;
   const nombreArtista = perfilArtista?.usuario

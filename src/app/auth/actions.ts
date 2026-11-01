@@ -2,8 +2,9 @@
 
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
-import { type EmailOtpType } from "@supabase/supabase-js";
+import { type AuthError, type EmailOtpType } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 export type EstadoFormulario = { error: string } | null;
 
@@ -27,6 +28,28 @@ export async function iniciarSesion(
   }
 
   redirect("/");
+}
+
+function traducirErrorRegistro(error: AuthError): EstadoFormulario {
+  console.error("[registro] falló:", error.status, error.code, error.message);
+  if (error.code === "user_already_exists" || error.code === "email_exists") {
+    return { error: "Ya existe una cuenta con ese email." };
+  }
+  if (error.code === "over_email_send_rate_limit" || error.status === 429) {
+    return { error: "Demasiados intentos. Espera unos minutos y vuelve a probar." };
+  }
+  if (error.code === "email_address_invalid" || error.code === "validation_failed") {
+    return { error: "Revisa el email: no parece válido." };
+  }
+  if (/confirmation email/i.test(error.message)) {
+    return {
+      error: "No pudimos enviarte el email de confirmación. Inténtalo más tarde o usa otro email.",
+    };
+  }
+  if (error.code === "weak_password") {
+    return { error: "La contraseña es demasiado débil." };
+  }
+  return { error: "No se pudo crear la cuenta. Inténtalo de nuevo." };
 }
 
 export async function registrarse(
@@ -62,22 +85,32 @@ export async function registrarse(
     if (ocupado) return { error: "Ese usuario ya está en uso." };
   }
 
+  const metadatos = { rol, nombre: nombre || null, usuario: rol === "tatuador" ? usuario : null };
+
+  // Solo en local: crea la cuenta ya confirmada sin enviar email (Resend en
+  // modo prueba solo envía a la cuenta dueña). En producción, flujo normal.
+  if (process.env.NODE_ENV === "development") {
+    const { error: errorAdmin } = await createAdminClient().auth.admin.createUser({
+      email,
+      password,
+      email_confirm: true,
+      user_metadata: metadatos,
+    });
+    if (errorAdmin) return traducirErrorRegistro(errorAdmin);
+
+    const { error: errorLogin } = await supabase.auth.signInWithPassword({ email, password });
+    if (errorLogin) redirect("/login");
+    redirect("/");
+  }
+
   const origin = (await headers()).get("origin");
   const { error } = await supabase.auth.signUp({
     email,
     password,
-    options: {
-      data: { rol, nombre: nombre || null, usuario: rol === "tatuador" ? usuario : null },
-      emailRedirectTo: `${origin}/auth/confirm`,
-    },
+    options: { data: metadatos, emailRedirectTo: `${origin}/auth/confirm` },
   });
 
-  if (error) {
-    if (error.code === "user_already_exists") {
-      return { error: "Ya existe una cuenta con ese email." };
-    }
-    return { error: "No se pudo crear la cuenta. Inténtalo de nuevo." };
-  }
+  if (error) return traducirErrorRegistro(error);
 
   redirect("/registro/revisa-tu-email");
 }

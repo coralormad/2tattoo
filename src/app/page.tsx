@@ -7,10 +7,14 @@ import { TarjetaFlash } from "@/components/marca/TarjetaFlash";
 import { TarjetaIdea } from "@/components/marca/TarjetaIdea";
 import { TarjetaArtista } from "@/components/marca/TarjetaArtista";
 import { obtenerDatosHome } from "@/lib/datos-home";
+import { obtenerContextoPostulacion } from "@/lib/postulaciones";
 import { createClient } from "@/lib/supabase/server";
 
 export default async function Home() {
-  const { flashes, ideas, artistas } = await obtenerDatosHome();
+  const [{ flashes, ideas, artistas }, { rol, postuladas }] = await Promise.all([
+    obtenerDatosHome(),
+    obtenerContextoPostulacion(),
+  ]);
 
   const supabase = await createClient();
   const {
@@ -106,7 +110,11 @@ export default async function Home() {
         <div className="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-5">
           {ideas.map((idea, i) => (
             <Revelar key={idea.titulo} retraso={i * 0.08}>
-              <TarjetaIdea idea={idea} />
+              <TarjetaIdea
+                idea={idea}
+                rol={rol}
+                yaPostulada={!!idea.id && postuladas.includes(idea.id)}
+              />
             </Revelar>
           ))}
         </div>

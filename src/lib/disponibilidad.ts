@@ -22,9 +22,8 @@ const MESES_ES = [
   "ENE", "FEB", "MAR", "ABR", "MAY", "JUN", "JUL", "AGO", "SEP", "OCT", "NOV", "DIC",
 ];
 
-const DURACION_HUECO_MIN = 120; // bloques de 2 h
+const DURACION_HUECO_POR_DEFECTO_MIN = 120; // si el flash no trae duracion_min
 const DIAS_A_MIRAR = 14;
-const MAX_HUECOS = 24;
 
 function aMinutos(hora: string) {
   const [h, m] = hora.split(":").map(Number);
@@ -45,12 +44,16 @@ function diaIso(fecha: Date) {
 }
 
 function fechaISO(fecha: Date) {
-  return fecha.toISOString().slice(0, 10);
+  // Fecha local (no UTC): toISOString() daba el día anterior entre 00:00 y 01:00 en Madrid.
+  const m = (fecha.getMonth() + 1).toString().padStart(2, "0");
+  const d = fecha.getDate().toString().padStart(2, "0");
+  return `${fecha.getFullYear()}-${m}-${d}`;
 }
 
 export async function obtenerHuecosDisponibles(
   supabase: SupabaseClient,
   tatuadorId: string,
+  duracionMin: number = DURACION_HUECO_POR_DEFECTO_MIN,
 ): Promise<Hueco[]> {
   const [{ data: disponibilidad }, { data: bloqueos }] = await Promise.all([
     supabase
@@ -79,7 +82,9 @@ export async function obtenerHuecosDisponibles(
   const huecos: Hueco[] = [];
   const hoy = new Date();
 
-  for (let i = 0; i < DIAS_A_MIRAR && huecos.length < MAX_HUECOS; i++) {
+  // Sin tope total: antes se cortaba en 24 huecos y los últimos días
+  // laborables (p. ej. jueves y viernes) nunca llegaban a la lista.
+  for (let i = 0; i < DIAS_A_MIRAR; i++) {
     const fecha = new Date(hoy);
     fecha.setDate(hoy.getDate() + i);
     const fechaStr = fechaISO(fecha);
@@ -92,9 +97,10 @@ export async function obtenerHuecosDisponibles(
     const inicio = aMinutos(diario.hora_inicio);
     const fin = aMinutos(diario.hora_fin);
 
-    for (let cursor = inicio; cursor + DURACION_HUECO_MIN <= fin; cursor += DURACION_HUECO_MIN) {
+    for (let cursor = inicio; cursor + duracionMin <= fin; cursor += duracionMin) {
       const bloqueInicio = cursor;
-      const bloqueFin = cursor + DURACION_HUECO_MIN;
+      const bloqueFin = cursor + duracionMin;
+      if (i === 0 && bloqueInicio <= hoy.getHours() * 60 + hoy.getMinutes()) continue; // hoy, ya pasado
 
       const chocaConBloqueo = diaBloqueado.some((b) => {
         if (!b.hora_inicio || !b.hora_fin) return false;
@@ -110,7 +116,6 @@ export async function obtenerHuecosDisponibles(
         horaInicio: aHoraTexto(bloqueInicio),
         horaFin: aHoraTexto(bloqueFin),
       });
-      if (huecos.length >= MAX_HUECOS) break;
     }
   }
 

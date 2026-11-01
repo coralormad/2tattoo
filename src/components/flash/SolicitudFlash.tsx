@@ -19,6 +19,9 @@ type SolicitudFlashProps = {
 export function SolicitudFlash({ flashId, titulo, esUnico, haySesion, huecos }: SolicitudFlashProps) {
   const [zona, setZona] = useState<string | null>(null);
   const [huecoElegido, setHuecoElegido] = useState<Hueco | null>(null);
+  const dias = Array.from(new Map(huecos.map((h) => [h.fecha, h.diaLabel])).entries());
+  const [diaElegido, setDiaElegido] = useState<string | null>(dias[0]?.[0] ?? null);
+  const huecosDelDia = huecos.filter((h) => h.fecha === diaElegido);
   const [estado, accion, enviando] = useActionState(solicitarFlash, null);
 
   if (!haySesion) {
@@ -97,8 +100,30 @@ export function SolicitudFlash({ flashId, titulo, esUnico, haySesion, huecos }: 
           02 — Hueco en su agenda
         </legend>
         {huecos.length > 0 ? (
-          <div className="grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-2">
-            {huecos.map((h) => {
+          <>
+          <div className="flex gap-2 overflow-x-auto pb-1">
+            {dias.map(([fecha, label]) => {
+              const activo = diaElegido === fecha;
+              return (
+                <button
+                  key={fecha}
+                  type="button"
+                  aria-pressed={activo}
+                  onClick={() => {
+                    setDiaElegido(fecha);
+                    setHuecoElegido(null);
+                  }}
+                  className={`shrink-0 border-2 border-carbon px-3 py-2 font-mono text-[13px] font-semibold ${
+                    activo ? "bg-carbon text-papel" : "bg-transparent text-carbon"
+                  }`}
+                >
+                  {label}
+                </button>
+              );
+            })}
+          </div>
+          <div className="grid grid-cols-[repeat(auto-fill,minmax(110px,1fr))] gap-2">
+            {huecosDelDia.map((h) => {
               const activo =
                 huecoElegido?.fecha === h.fecha &&
                 huecoElegido?.horaInicio === h.horaInicio &&
@@ -113,14 +138,14 @@ export function SolicitudFlash({ flashId, titulo, esUnico, haySesion, huecos }: 
                     activo ? "bg-lima text-carbon" : "bg-papel-claro text-carbon"
                   }`}
                 >
-                  <span className="font-semibold">{h.diaLabel}</span>
-                  <span>
+                  <span className="font-semibold">
                     {h.horaInicio}–{h.horaFin}
                   </span>
                 </button>
               );
             })}
           </div>
+          </>
         ) : (
           <p className="text-xs text-[#444]">
             El tatuador todavía no ha configurado su horario. No hay huecos para reservar por

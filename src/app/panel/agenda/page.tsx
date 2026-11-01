@@ -13,12 +13,21 @@ const MENSAJES_GOOGLE: Record<string, string> = {
     "Google no devolvió el permiso permanente. Quita el acceso de 2Tattoo en tu cuenta de Google y vuelve a intentarlo.",
 };
 
+const MENSAJES_HORARIO: Record<string, { texto: string; aviso?: boolean }> = {
+  guardado: { texto: "✓ Horario guardado. Ya es el que verán tus clientes." },
+  vacio: {
+    texto:
+      "Has guardado un horario vacío: no marcaste ningún día, así que ahora mismo no tienes ningún hueco disponible para reservar.",
+    aviso: true,
+  },
+};
+
 export default async function Agenda({
   searchParams,
 }: {
-  searchParams: Promise<{ google?: string }>;
+  searchParams: Promise<{ google?: string; horario?: string }>;
 }) {
-  const { google } = await searchParams;
+  const { google, horario } = await searchParams;
   const supabase = await createClient();
   const {
     data: { user },
@@ -86,6 +95,17 @@ export default async function Agenda({
             }`}
           >
             {MENSAJES_GOOGLE[google]}
+          </p>
+        )}
+
+        {horario && MENSAJES_HORARIO[horario] && (
+          <p
+            role="status"
+            className={`mt-4 max-w-md text-sm font-semibold ${
+              MENSAJES_HORARIO[horario].aviso ? "text-[#b3221c]" : "text-lima"
+            }`}
+          >
+            {MENSAJES_HORARIO[horario].texto}
           </p>
         )}
 

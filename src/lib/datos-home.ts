@@ -25,7 +25,7 @@ export async function obtenerDatosHome() {
       .limit(4),
     supabase
       .from("ideas")
-      .select("titulo, texto, zona, perfiles(usuario, nombre)")
+      .select("id, titulo, texto, zona, perfiles(usuario, nombre)")
       .eq("estado", "abierta")
       .order("creado_en", { ascending: false })
       .limit(3),
@@ -50,6 +50,7 @@ export async function obtenerDatosHome() {
   }));
 
   const ideas: Idea[] = (ideasRes.data ?? []).map((i) => ({
+    id: i.id,
     artista: nombreArtista(i.perfiles ?? { usuario: null, nombre: null }),
     titulo: i.titulo,
     texto: i.texto ?? "",

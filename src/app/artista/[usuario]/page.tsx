@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { Header } from "@/components/marca/Header";
 import { PerfilTabs } from "@/components/perfil/PerfilTabs";
+import { obtenerContextoPostulacion } from "@/lib/postulaciones";
 
 export default async function PerfilArtista({
   params,
@@ -20,7 +21,7 @@ export default async function PerfilArtista({
 
   if (!perfil) notFound();
 
-  const [{ data: flashes }, { data: ideas }] = await Promise.all([
+  const [{ data: flashes }, { data: ideas }, { rol, postuladas }] = await Promise.all([
     supabase
       .from("flashes")
       .select("id, titulo, tipo, icono, medida_cm, precio_desde")
@@ -33,6 +34,7 @@ export default async function PerfilArtista({
       .eq("tatuador_id", perfil.id)
       .eq("estado", "abierta")
       .order("creado_en", { ascending: false }),
+    obtenerContextoPostulacion(),
   ]);
 
   const estilos: string[] = (perfil.estilos ?? "")
@@ -89,7 +91,12 @@ export default async function PerfilArtista({
       </section>
 
       <section id="contenido" className="bg-papel px-4 pb-16 pt-8 text-carbon sm:px-10">
-        <PerfilTabs flashes={flashes ?? []} ideas={ideas ?? []} />
+        <PerfilTabs
+          flashes={flashes ?? []}
+          ideas={ideas ?? []}
+          rol={rol}
+          postuladas={postuladas}
+        />
       </section>
     </>
   );

@@ -71,6 +71,21 @@ export function FormularioFlash() {
         placeholder="Sevilla"
       />
 
+      <SelectorFicha
+        numero="07"
+        etiqueta="Duración aprox."
+        id="flash-duracion"
+        name="duracion_min"
+        defaultValue="60"
+      >
+        <option value="30">30 min</option>
+        <option value="60">1 h</option>
+        <option value="90">1 h 30</option>
+        <option value="120">2 h</option>
+        <option value="180">3 h</option>
+        <option value="240">4 h</option>
+      </SelectorFicha>
+
       {estado?.error && (
         <p role="alert" className="text-sm text-[#b3221c]">
           {estado.error}

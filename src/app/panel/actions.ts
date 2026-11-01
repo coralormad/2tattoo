@@ -45,6 +45,9 @@ export async function publicarFlash(
   const medida = formData.get("medida_cm");
   const precio = formData.get("precio_desde");
   const ciudad = String(formData.get("ciudad") ?? "").trim();
+  const duracionEnviada = Number(formData.get("duracion_min"));
+  const duracionMin =
+    Number.isFinite(duracionEnviada) && duracionEnviada > 0 ? duracionEnviada : 60;
 
   const { error } = await supabase.from("flashes").insert({
     tatuador_id: tatuadorId,
@@ -54,6 +57,7 @@ export async function publicarFlash(
     medida_cm: medida ? Number(medida) : null,
     precio_desde: precio ? Number(precio) : null,
     ciudad: ciudad || null,
+    duracion_min: duracionMin,
   });
 
   if (error) return { error: "No se pudo publicar el flash. Inténtalo de nuevo." };

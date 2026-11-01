@@ -8,8 +8,10 @@ import { createClient } from "@supabase/supabase-js";
  * para un visitante que NO es él (ficha de flash), necesitamos leer el
  * token de Google Calendar de ese tatuador, y la tabla conexiones_google
  * no tiene política pública (solo el propio dueño puede leerla con el
- * cliente normal). Esta key nunca debe exponerse al navegador ni usarse
- * para nada que no sea esta lectura puntual.
+ * cliente normal).
+ * Segundo uso, SOLO en desarrollo: crear cuentas ya confirmadas en el
+ * registro (auth/actions.ts) para no depender del envío de email.
+ * Esta key nunca debe exponerse al navegador.
  */
 export function createAdminClient() {
   return createClient(

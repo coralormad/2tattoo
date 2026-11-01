@@ -71,7 +71,7 @@ export async function guardarDisponibilidad(
     if (error) return { error: "No se pudo guardar el horario. Inténtalo de nuevo." };
   }
 
-  redirect("/panel/agenda");
+  redirect(`/panel/agenda?horario=${filas.length > 0 ? "guardado" : "vacio"}`);
 }
 
 export async function crearBloqueo(
