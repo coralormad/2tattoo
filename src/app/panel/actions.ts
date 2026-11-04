@@ -2,6 +2,11 @@
 
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import {
+  type MediaInstagram,
+  listarMediaInstagram,
+  refrescarTokenInstagram,
+} from "@/lib/instagram";
 
 export type EstadoFormulario = { error: string } | null;
 
@@ -118,6 +123,7 @@ export async function actualizarPerfil(
   const bio = String(formData.get("bio") ?? "").trim();
   const ciudad = String(formData.get("ciudad") ?? "").trim();
   const estilos = String(formData.get("estilos") ?? "").trim();
+  const notas = String(formData.get("notas") ?? "").trim();
 
   if (!USUARIO_VALIDO.test(usuario)) {
     return {
@@ -137,10 +143,163 @@ export async function actualizarPerfil(
 
   const { error } = await supabase
     .from("perfiles")
-    .update({ usuario, bio: bio || null, ciudad: ciudad || null, estilos: estilos || null })
+    .update({
+      usuario,
+      bio: bio || null,
+      ciudad: ciudad || null,
+      estilos: estilos || null,
+      notas: notas || null,
+    })
     .eq("id", tatuadorId);
 
   if (error) return { error: "No se pudo guardar el perfil. Inténtalo de nuevo." };
 
   redirect("/panel");
+}
+
+export async function desconectarInstagram() {
+  const { supabase, tatuadorId } = await requerirTatuador();
+
+  await supabase.from("conexiones_instagram").delete().eq("tatuador_id", tatuadorId);
+
+  redirect("/panel/perfil");
+}
+
+/**
+ * Access token vigente del tatuador, refrescándolo si está a punto de
+ * caducar. Devuelve null si no hay conexión o el refresco falla.
+ */
+async function obtenerAccessTokenInstagram(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  tatuadorId: string,
+): Promise<string | null> {
+  const { data: conexion } = await supabase
+    .from("conexiones_instagram")
+    .select("access_token, expira_en")
+    .eq("tatuador_id", tatuadorId)
+    .maybeSingle();
+
+  if (!conexion) return null;
+
+  let accessToken = conexion.access_token as string;
+  const expira = new Date(conexion.expira_en as string);
+
+  if (expira.getTime() - Date.now() < 60_000) {
+    const refrescado = await refrescarTokenInstagram(accessToken);
+    if (!refrescado) return null;
+
+    accessToken = refrescado.access_token;
+    await supabase
+      .from("conexiones_instagram")
+      .update({
+        access_token: refrescado.access_token,
+        expira_en: new Date(Date.now() + refrescado.expira_en * 1000).toISOString(),
+      })
+      .eq("tatuador_id", tatuadorId);
+  }
+
+  return accessToken;
+}
+
+/**
+ * Trae la media de Instagram del tatuador conectado para que un
+ * componente de cliente la muestre en un selector. No redirige: si no
+ * hay conexión o falla la llamada, simplemente no hay nada que elegir.
+ */
+export async function listarMediaInstagramAction(): Promise<MediaInstagram[]> {
+  const { supabase, tatuadorId } = await requerirTatuador();
+
+  const accessToken = await obtenerAccessTokenInstagram(supabase, tatuadorId);
+  if (!accessToken) return [];
+
+  return listarMediaInstagram(accessToken);
+}
+
+type SeleccionInstagram = { ig_media_id: string };
+
+/**
+ * Sube a Storage e inserta en flashes cada foto seleccionada. La
+ * constraint unique (tatuador_id, ig_media_id) hace que reintentar una
+ * importación sea seguro: con ignoreDuplicates los posts ya importados
+ * se omiten en vez de romper el resto del lote.
+ *
+ * El cliente solo manda los `ig_media_id` elegidos: `media_url` y
+ * `caption` se vuelven a pedir aquí a la API de Instagram con el token
+ * del propio tatuador, en vez de confiar en lo que venga en el
+ * formulario — si no, cualquiera podría editar el campo oculto y poner
+ * una media_url arbitraria y el servidor la descargaría y publicaría
+ * igualmente (SSRF).
+ */
+export async function importarFlashesInstagram(
+  formData: FormData,
+): Promise<{ error: string } | { ok: true; importados: number }> {
+  const { supabase, tatuadorId } = await requerirTatuador();
+
+  let seleccion: SeleccionInstagram[];
+  try {
+    seleccion = JSON.parse(String(formData.get("seleccion") ?? "[]"));
+  } catch {
+    return { error: "Selección inválida." };
+  }
+
+  if (!Array.isArray(seleccion) || seleccion.length === 0) {
+    return { error: "No hay fotos seleccionadas." };
+  }
+
+  const accessToken = await obtenerAccessTokenInstagram(supabase, tatuadorId);
+  if (!accessToken) return { error: "Tu conexión con Instagram no está disponible. Reconéctala." };
+
+  const idsElegidos = new Set(seleccion.map((item) => item.ig_media_id));
+  const mediaReal = await listarMediaInstagram(accessToken);
+  const mediaElegida = mediaReal.filter((m) => idsElegidos.has(m.id));
+
+  const filas: {
+    tatuador_id: string;
+    titulo: string;
+    tipo: "flash";
+    icono: "star";
+    imagen_url: string;
+    ig_media_id: string;
+  }[] = [];
+
+  for (const item of mediaElegida) {
+    try {
+      const resImagen = await fetch(item.media_url);
+      if (!resImagen.ok) continue;
+
+      const bytes = await resImagen.arrayBuffer();
+      const ruta = `${tatuadorId}/${item.id}.jpg`;
+
+      const { error: errorSubida } = await supabase.storage
+        .from("flashes")
+        .upload(ruta, bytes, { contentType: "image/jpeg", upsert: true });
+      if (errorSubida) continue;
+
+      const {
+        data: { publicUrl },
+      } = supabase.storage.from("flashes").getPublicUrl(ruta);
+
+      const caption = (item.caption ?? "").trim();
+      filas.push({
+        tatuador_id: tatuadorId,
+        titulo: caption ? caption.slice(0, 80) : "Importado de Instagram",
+        tipo: "flash",
+        icono: "star",
+        imagen_url: publicUrl,
+        ig_media_id: item.id,
+      });
+    } catch {
+      // Un fallo en una foto no debe tirar el resto del lote.
+    }
+  }
+
+  if (filas.length === 0) return { error: "No se pudo importar ninguna foto." };
+
+  const { error, count } = await supabase
+    .from("flashes")
+    .upsert(filas, { onConflict: "tatuador_id,ig_media_id", ignoreDuplicates: true, count: "exact" });
+
+  if (error) return { error: "No se pudieron guardar los flashes importados." };
+
+  return { ok: true, importados: count ?? filas.length };
 }

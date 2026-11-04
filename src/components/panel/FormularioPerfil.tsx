@@ -12,15 +12,17 @@ type FormularioPerfilProps = {
   bio: string | null;
   ciudad: string | null;
   estilos: string | null;
+  notas: string | null;
 };
 
-export function FormularioPerfil({ nombre, usuario, bio, ciudad, estilos }: FormularioPerfilProps) {
+export function FormularioPerfil({ nombre, usuario, bio, ciudad, estilos, notas }: FormularioPerfilProps) {
   const [estado, accion, enviando] = useActionState(actualizarPerfil, null);
   const [v, setV] = useState({
     usuario: usuario ?? "",
     ciudad: ciudad ?? "",
     estilos: estilos ?? "",
     bio: bio ?? "",
+    notas: notas ?? "",
   });
   const cambiar = (campo: keyof typeof v) => (e: { target: { value: string } }) =>
     setV((p) => ({ ...p, [campo]: e.target.value }));
@@ -95,6 +97,22 @@ export function FormularioPerfil({ nombre, usuario, bio, ciudad, estilos }: Form
             onChange={cambiar("bio")}
             placeholder="Dibujo plantas que encuentro paseando…"
           />
+
+          <div className="flex flex-col gap-2">
+            <AreaFicha
+              numero="05"
+              etiqueta="Notas (privadas)"
+              id="perfil-notas"
+              name="notas"
+              rows={3}
+              value={v.notas}
+              onChange={cambiar("notas")}
+              placeholder="Recordatorios, condiciones, cosas que solo tú necesitas ver…"
+            />
+            <span className="font-mono text-[11px] text-[#555]">
+              Solo las ves tú · no aparecen en tu perfil público.
+            </span>
+          </div>
 
           {estado?.error && (
             <p role="alert" className="text-sm font-semibold text-[#b3221c]">

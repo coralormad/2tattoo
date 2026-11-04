@@ -24,7 +24,7 @@ export default async function PerfilArtista({
   const [{ data: flashes }, { data: ideas }, { rol, postuladas }] = await Promise.all([
     supabase
       .from("flashes")
-      .select("id, titulo, tipo, icono, medida_cm, precio_desde")
+      .select("id, titulo, tipo, icono, medida_cm, precio_desde, imagen_url")
       .eq("tatuador_id", perfil.id)
       .eq("estado", "disponible")
       .order("creado_en", { ascending: false }),

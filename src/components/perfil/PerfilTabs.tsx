@@ -12,6 +12,7 @@ type FlashResumen = {
   icono: TipoIconoFlash;
   medida_cm: number | null;
   precio_desde: number | null;
+  imagen_url: string | null;
 };
 
 type IdeaResumen = {
@@ -77,8 +78,13 @@ export function PerfilTabs({ flashes, ideas, rol, postuladas }: PerfilTabsProps)
                 <div className="flex justify-between border-b border-dashed border-carbon px-3 py-2 text-[11px] font-semibold">
                   <span>{f.tipo === "flash_unico" ? "ÚNICO" : "REPETIBLE"}</span>
                 </div>
-                <div className="flex h-[180px] items-center justify-center">
-                  <IconoFlash tipo={f.icono} className="h-24 w-24" />
+                <div className="flex h-[180px] items-center justify-center overflow-hidden">
+                  {f.imagen_url ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={f.imagen_url} alt={f.titulo} className="h-full w-full object-cover" />
+                  ) : (
+                    <IconoFlash tipo={f.icono} className="h-24 w-24" />
+                  )}
                 </div>
                 <div className="flex flex-col gap-1 border-t border-dashed border-carbon p-3">
                   <span className="font-display text-2xl uppercase">{f.titulo}</span>

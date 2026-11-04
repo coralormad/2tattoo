@@ -18,7 +18,7 @@ export default async function FichaFlash({
     supabase
       .from("flashes")
       .select(
-        "id, titulo, tipo, icono, medida_cm, precio_desde, ciudad, estado, tatuador_id, duracion_min, perfiles(usuario, nombre)",
+        "id, titulo, tipo, icono, imagen_url, medida_cm, precio_desde, ciudad, estado, tatuador_id, duracion_min, perfiles(usuario, nombre)",
       )
       .eq("id", id)
       .single(),
@@ -50,8 +50,13 @@ export default async function FichaFlash({
               <span>Nº {flash.id.slice(0, 4).toUpperCase()}</span>
               <span>{esUnico ? "FLASH ÚNICO" : "FLASH"}</span>
             </div>
-            <div className="flex h-[300px] items-center justify-center">
-              <IconoFlash tipo={flash.icono} className="h-56 w-56" />
+            <div className="flex h-[300px] items-center justify-center overflow-hidden">
+              {flash.imagen_url ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={flash.imagen_url} alt={flash.titulo} className="h-full w-full object-cover" />
+              ) : (
+                <IconoFlash tipo={flash.icono} className="h-56 w-56" />
+              )}
             </div>
           </div>
           {esUnico && (
