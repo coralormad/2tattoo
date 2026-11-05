@@ -27,7 +27,7 @@ export default async function PerfilPanel({
 
   if (!user) redirect("/login");
 
-  const [{ data: perfil }, { data: conexionInstagram }] = await Promise.all([
+  const [{ data: perfil, error: errorPerfil }, { data: conexionInstagram }] = await Promise.all([
     supabase
       .from("perfiles")
       .select("rol, nombre, usuario, bio, ciudad, estilos, notas")
@@ -40,6 +40,7 @@ export default async function PerfilPanel({
       .maybeSingle(),
   ]);
 
+  if (errorPerfil) console.error("[panel/perfil] error al leer perfiles:", errorPerfil.message);
   if (perfil?.rol !== "tatuador") redirect("/");
 
   return (
