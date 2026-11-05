@@ -231,7 +231,7 @@ export default async function Panel({
                 sub: "Horario, bloqueos y Google Calendar",
               },
               perfil.usuario
-                ? { href: `/artista/${perfil.usuario}`, titulo: "Mi perfil", sub: `/artista/${perfil.usuario}` }
+                ? { href: "/panel/perfil", titulo: "Mi perfil", sub: "Edita tu perfil, Instagram y notas" }
                 : { href: "/panel/perfil", titulo: "Completa tu perfil", sub: "Aún no tienes URL pública" },
               { href: "/panel/solicitudes", titulo: "Historial", sub: "Solicitudes aceptadas y rechazadas" },
             ].map((a) => (
@@ -249,10 +249,10 @@ export default async function Panel({
             ))}
             {perfil.usuario && (
               <Link
-                href="/panel/perfil"
+                href={`/artista/${perfil.usuario}`}
                 className="self-end font-mono text-[11px] uppercase tracking-widest text-gris underline decoration-dashed underline-offset-4 hover:text-lima"
               >
-                Editar perfil
+                Ver perfil público
               </Link>
             )}
           </div>
