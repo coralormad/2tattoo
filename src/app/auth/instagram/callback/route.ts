@@ -22,13 +22,27 @@ export async function GET(request: Request) {
     .find((c) => c.startsWith("instagram_oauth_state="))
     ?.split("=")[1];
 
-  if (!code || !state || state !== cookieState) {
-    return NextResponse.redirect(new URL("/panel/perfil?instagram=error", request.url));
+  const redirigir = (destino: string) => {
+    const res = NextResponse.redirect(new URL(destino, request.url));
+    res.cookies.delete("instagram_oauth_state");
+    return res;
+  };
+
+  const { data: perfil } = await supabase
+    .from("perfiles")
+    .select("rol")
+    .eq("id", user.id)
+    .single();
+
+  if (perfil?.rol !== "tatuador") return redirigir("/");
+
+  if (url.searchParams.get("error") || !code || !state || state !== cookieState) {
+    return redirigir("/panel/perfil?instagram=error");
   }
 
   const tokens = await intercambiarCodigoInstagram(code, origin);
   if (!tokens) {
-    return NextResponse.redirect(new URL("/panel/perfil?instagram=error", request.url));
+    return redirigir("/panel/perfil?instagram=error");
   }
 
   // El username es solo para mostrarlo en el panel; si esta llamada falla
@@ -54,12 +68,8 @@ export async function GET(request: Request) {
     expira_en: new Date(Date.now() + tokens.expira_en * 1000).toISOString(),
   });
   if (error) {
-    return NextResponse.redirect(new URL("/panel/perfil?instagram=error", request.url));
+    return redirigir("/panel/perfil?instagram=error");
   }
 
-  const response = NextResponse.redirect(
-    new URL("/panel/perfil?instagram=conectado", request.url),
-  );
-  response.cookies.delete("instagram_oauth_state");
-  return response;
+  return redirigir("/panel/perfil?instagram=conectado");
 }

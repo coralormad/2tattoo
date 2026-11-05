@@ -71,3 +71,21 @@ create policy "El tatuador borra solo sus propias fotos"
     bucket_id = 'flashes'
     and (storage.foldername(name))[1] = auth.uid()::text
   );
+
+-- ============================================================
+-- Parche posterior: solo esta politica si ya ejecutaste lo anterior
+-- (puedes ejecutar SOLO este bloque en el SQL Editor de Supabase;
+--  no repitas las politicas de arriba, darian error por duplicado)
+-- ============================================================
+-- El tatuador solo puede actualizar (p. ej. reemplazar con upsert) archivos
+-- dentro de su propia carpeta; la ruta nueva tambien debe ser la suya.
+create policy "El tatuador actualiza solo sus propias fotos"
+  on storage.objects for update
+  using (
+    bucket_id = 'flashes'
+    and (storage.foldername(name))[1] = auth.uid()::text
+  )
+  with check (
+    bucket_id = 'flashes'
+    and (storage.foldername(name))[1] = auth.uid()::text
+  );

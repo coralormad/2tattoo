@@ -264,10 +264,26 @@ export async function importarFlashesInstagram(
 
   for (const item of mediaElegida) {
     try {
-      const resImagen = await fetch(item.media_url);
+      // Anti-SSRF: solo https y solo CDNs de Instagram/Meta, sin seguir redirecciones.
+      const urlImagen = new URL(item.media_url);
+      const host = urlImagen.hostname;
+      const hostPermitido = ["cdninstagram.com", "fbcdn.net"].some(
+        (d) => host === d || host.endsWith(`.${d}`),
+      );
+      if (urlImagen.protocol !== "https:" || !hostPermitido) continue;
+
+      const MAX_BYTES = 8 * 1024 * 1024;
+      const resImagen = await fetch(urlImagen, {
+        redirect: "manual",
+        signal: AbortSignal.timeout(10000),
+      });
       if (!resImagen.ok) continue;
+      if (!(resImagen.headers.get("content-type") ?? "").startsWith("image/")) continue;
+      const largo = Number(resImagen.headers.get("content-length") ?? 0);
+      if (largo > MAX_BYTES) continue;
 
       const bytes = await resImagen.arrayBuffer();
+      if (bytes.byteLength > MAX_BYTES) continue;
       const ruta = `${tatuadorId}/${item.id}.jpg`;
 
       const { error: errorSubida } = await supabase.storage

@@ -23,9 +23,13 @@ export function SelectorInstagram({ onCerrar }: { onCerrar: () => void }) {
 
   useEffect(() => {
     let activo = true;
-    listarMediaInstagramAction().then((datos) => {
-      if (activo) setMedia(datos);
-    });
+    listarMediaInstagramAction()
+      .then((datos) => {
+        if (activo) setMedia(datos);
+      })
+      .catch(() => {
+        if (activo) setMedia([]);
+      });
     return () => {
       activo = false;
     };
