@@ -172,10 +172,10 @@ export async function desconectarInstagram() {
 async function obtenerAccessTokenInstagram(
   supabase: Awaited<ReturnType<typeof createClient>>,
   tatuadorId: string,
-): Promise<string | null> {
+): Promise<{ accessToken: string; igUserId: string } | null> {
   const { data: conexion } = await supabase
     .from("conexiones_instagram")
-    .select("access_token, expira_en")
+    .select("access_token, expira_en, ig_user_id")
     .eq("tatuador_id", tatuadorId)
     .maybeSingle();
 
@@ -198,7 +198,7 @@ async function obtenerAccessTokenInstagram(
       .eq("tatuador_id", tatuadorId);
   }
 
-  return accessToken;
+  return { accessToken, igUserId: conexion.ig_user_id as string };
 }
 
 /**
@@ -209,10 +209,10 @@ async function obtenerAccessTokenInstagram(
 export async function listarMediaInstagramAction(): Promise<MediaInstagram[]> {
   const { supabase, tatuadorId } = await requerirTatuador();
 
-  const accessToken = await obtenerAccessTokenInstagram(supabase, tatuadorId);
-  if (!accessToken) return [];
+  const conexion = await obtenerAccessTokenInstagram(supabase, tatuadorId);
+  if (!conexion) return [];
 
-  return listarMediaInstagram(accessToken);
+  return listarMediaInstagram(conexion.accessToken, conexion.igUserId);
 }
 
 type SeleccionInstagram = { ig_media_id: string };
@@ -246,11 +246,11 @@ export async function importarFlashesInstagram(
     return { error: "No hay fotos seleccionadas." };
   }
 
-  const accessToken = await obtenerAccessTokenInstagram(supabase, tatuadorId);
-  if (!accessToken) return { error: "Tu conexión con Instagram no está disponible. Reconéctala." };
+  const conexion = await obtenerAccessTokenInstagram(supabase, tatuadorId);
+  if (!conexion) return { error: "Tu conexión con Instagram no está disponible. Reconéctala." };
 
   const idsElegidos = new Set(seleccion.map((item) => item.ig_media_id));
-  const mediaReal = await listarMediaInstagram(accessToken);
+  const mediaReal = await listarMediaInstagram(conexion.accessToken, conexion.igUserId);
   const mediaElegida = mediaReal.filter((m) => idsElegidos.has(m.id));
 
   const filas: {

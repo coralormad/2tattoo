@@ -45,20 +45,7 @@ export async function GET(request: Request) {
     return redirigir("/panel/perfil?instagram=error");
   }
 
-  // El username es solo para mostrarlo en el panel; si esta llamada falla
-  // seguimos sin él, no bloquea la conexión.
-  let username: string | null = null;
-  try {
-    const resPerfil = await fetch(
-      `https://graph.instagram.com/me?fields=username&access_token=${tokens.access_token}`,
-    );
-    if (resPerfil.ok) {
-      const datos = await resPerfil.json();
-      username = datos.username ?? null;
-    }
-  } catch {
-    // Ignorado a propósito: ver comentario de arriba.
-  }
+  const username = tokens.username;
 
   const { error } = await supabase.from("conexiones_instagram").upsert({
     tatuador_id: user.id,
