@@ -37,6 +37,16 @@ export async function GET(request: Request) {
   if (perfil?.rol !== "tatuador") return redirigir("/");
 
   if (url.searchParams.get("error") || !code || !state || state !== cookieState) {
+    // Sin valores sensibles: solo qué comprobación falló y el error que reporte Meta.
+    console.error("[instagram] callback rechazado", {
+      error: url.searchParams.get("error"),
+      error_reason: url.searchParams.get("error_reason"),
+      error_description: url.searchParams.get("error_description"),
+      sinCode: !code,
+      sinState: !state,
+      sinCookieState: !cookieState,
+      stateNoCoincide: !!state && !!cookieState && state !== cookieState,
+    });
     return redirigir("/panel/perfil?instagram=error");
   }
 
@@ -55,6 +65,7 @@ export async function GET(request: Request) {
     expira_en: new Date(Date.now() + tokens.expira_en * 1000).toISOString(),
   });
   if (error) {
+    console.error("[instagram] upsert en conexiones_instagram falló", error.code, error.message);
     return redirigir("/panel/perfil?instagram=error");
   }
 
